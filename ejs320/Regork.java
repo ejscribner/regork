@@ -9,6 +9,17 @@ public class Regork { //needs constructors?
     static Map<String, PreparedStatement> queries = new HashMap<>();
     static String password;
     static String username;
+    public static final String ANSI_RESET = "\u001B[0m";
+    public static final String ANSI_BLACK = "\u001B[30m";
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_PURPLE = "\u001B[35m";
+    public static final String ANSI_CYAN = "\u001B[36m";
+    public static final String ANSI_WHITE = "\u001B[37m";
+    public static final String ANSI_BOLD = "\033[1m";
+    public static final String ANSI_BRESET = "\033[0m";
     public static void main(String[] args) { //make get integer method that works for all, sends msg prompt
         Console console = System.console();
         Scanner scan = new Scanner(System.in);
@@ -24,10 +35,16 @@ public class Regork { //needs constructors?
                 System.out.println("Successfully Connected");
                 insertQueries(con);
                 isLoggedIn = true;
-                System.out.println("What type of user are you?");
-                System.out.println("Type 1 for Manager, 2 for Supplier, or 3 for Recalls");
                 boolean isValid = false;
+                System.out.println(); //padding
                 while (!isValid) {
+                    System.out.println(ANSI_BOLD + "Main Menu" + ANSI_BRESET);
+                    System.out.println("Please select your user type: ");
+                    System.out.println("-----------------------------");
+                    System.out.println("[1] Manager");
+                    System.out.println("[2] Data Checker");
+                    System.out.println("[3] Recalls");
+                    System.out.println("[X] Quit Program");
                     if (scan.hasNextInt()) {
                         int userType = scan.nextInt(); //could make a letter?
                         if(userType >= 1 && userType <= 3) {
@@ -36,17 +53,22 @@ public class Regork { //needs constructors?
                                 Manager.manage(con, scan);
                             } else if(userType == 2) {
                                 isValid = true;
-                                System.out.println("Supplier");
+                                int status = DataIntegrity.check(con, scan);
+                                if (status == -1) {
+                                    isValid = false;
+                                }
                             } else {
                                 isValid = true;
                                 System.out.println("Third opt");
                             }
                         } else {
-                            System.out.println("Error: Please Enter 1, 2, or 3");
+                            System.out.println(ANSI_RED + "\nInvalid input" + ANSI_RESET);
+                            isValid = false;
                         }
                     } else {
-                        System.out.println("Error: Please Enter 1, 2, or 3");
-                        scan.next();
+                        checkQuit(scan);
+                        System.out.println(ANSI_RED + "\nInvalid input" + ANSI_RESET);
+                        isValid = false;
                     }
                 }
             } catch (SQLException sqe) {
@@ -78,6 +100,14 @@ public class Regork { //needs constructors?
 
     }
 
+    static void checkQuit(Scanner scan) {
+        String input = scan.next();
+        if(input.toUpperCase().equals("X")) {
+            System.out.println(Regork.ANSI_GREEN + "Program Exiting \n" + Regork.ANSI_RESET);
+            System.exit(0);
+        }
+    }
+
     static void readLogin(Scanner scan, Console console, String prompt) {
         System.out.println(prompt);
         username = null;
@@ -97,6 +127,10 @@ public class Regork { //needs constructors?
             queries.put("productSearchByName", productSearchByName);
             PreparedStatement productSearchByID = con.prepareStatement("select unique gen_id as ID, product_name as Name from product inner join GEN_PRODUCT on parent_id = gen_id where gen_id like '%'||?||'%'");
             queries.put("productSearchByID", productSearchByID);
+            PreparedStatement checkShipFromIndiv = con.prepareStatement("select FROM_ID as Ship_From,TO_ID as Ship_To, M.MANUFACTURER_ID as Manufacturer from SHIPMENT inner join PRODUCT on SHIPMENT.SHIP_ID = PRODUCT.SHIP_ID inner join MANUFACTURE M on PRODUCT.PRODUCT_ID = M.PRODUCT_ID where M.PRODUCT_ID = ?");
+            queries.put("checkShipFromIndiv", checkShipFromIndiv);
+            CallableStatement callFixShip = con.prepareCall("{call ejs320.fix_ship(?)}");
+            queries.put("callFixShip", callFixShip);
         } catch (SQLException sqe) {
             System.out.println("We ran into a sql exception on insert");
         }

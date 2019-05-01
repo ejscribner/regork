@@ -11,18 +11,18 @@ import java.util.Scanner;
 public class Manager extends Regork {
     public static void manage(Connection con, Scanner scan) {
         searchInput(scan);
-        Boolean valid = false;
-        while(!valid) { //runs twice?
+        Boolean isValid = false;
+        while(!isValid) {
             System.out.print("Enter an ID from the search results to show suppliers with the product in stock, \nor type S to search again: ");
             if(scan.hasNextInt()) {
                 searchExternalInventory(scan.nextInt());
-                valid = true;
+                isValid = true;
             } else if ((scan.next().toUpperCase()).equals("S")) {
                 System.out.println("Trying to search again");
                 searchInput(scan);
             } else {
                 System.out.println("invalid input"); //make recursive somehow, or add option for Quit?
-            }
+            } //could be put into its own method and re-used
         }
     }
 
@@ -72,7 +72,9 @@ public class Manager extends Regork {
         }
     }
 
-    public static void searchExternalInventory(int productID) {
+    public static void searchExternalInventory(int productID) { //this inventory works on who manufacturedd something
+        //shoudl work on who has recieved shipments of someething? harder though
+        //Maybe only for regork inventory
         ResultSet result;
         try{
             Regork.queries.get("inventoryByID").setInt(1, productID);
