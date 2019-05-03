@@ -38,24 +38,28 @@ public class Regork { //needs constructors?
                 boolean isValid = false;
                 System.out.println(); //padding
                 while (!isValid) {
-                    System.out.println(ANSI_BOLD + "Main Menu" + ANSI_BRESET);
+                    System.out.println(ANSI_BOLD + "\nMain Menu" + ANSI_BRESET);
                     System.out.println("Please select your user type: ");
                     System.out.println("-----------------------------");
                     System.out.println("[1] Manager");
                     System.out.println("[2] Data Checker");
                     System.out.println("[3] Recalls");
                     System.out.println("[X] Quit Program");
-                    if (scan.hasNextInt()) {
-                        int userType = scan.nextInt(); //could make a letter?
+                    if (scan.hasNextInt()) { //look into abstraction
+                        int userType = scan.nextInt();
                         if(userType >= 1 && userType <= 3) {
                             if (userType == 1) {
                                 isValid = true;
-                                Manager.manage(con, scan);
+                                int status = Manager.manage(scan);
+                                if(status == -1) {
+                                    isValid = false;
+                                }
                             } else if(userType == 2) {
                                 isValid = true;
-                                int status = DataIntegrity.check(con, scan);
+                                int status = DataIntegrity.check(scan);
                                 if (status == -1) {
                                     isValid = false;
+                                    //doesnt get here after going into menu options and walking back
                                 }
                             } else {
                                 isValid = true;
@@ -97,7 +101,6 @@ public class Regork { //needs constructors?
                 isLoggedIn = false;
             }
         }
-
     }
 
     static void checkQuit(Scanner scan) {
@@ -131,6 +134,16 @@ public class Regork { //needs constructors?
             queries.put("checkShipFromIndiv", checkShipFromIndiv);
             CallableStatement callFixShip = con.prepareCall("{call ejs320.fix_ship(?)}");
             queries.put("callFixShip", callFixShip);
+            CallableStatement callFixOffer = con.prepareCall("{call ejs320.fix_offer(?)}");
+            queries.put("callFixOffer", callFixOffer);
+            PreparedStatement manufacturedBy = con.prepareStatement("select unique MANUFACTURER_ID from MANUFACTURE inner join product on PRODUCT.PRODUCT_ID = MANUFACTURE.PRODUCT_ID inner join GEN_PRODUCT on GEN_ID = PARENT_ID where GEN_ID = ? minus (select SUPPLIER_ID from offers where GEN_ID = ?)");
+            queries.put("manufacturedBy", manufacturedBy);
+            PreparedStatement offeredBy = con.prepareStatement("select SUPPLIER_ID from offers where GEN_ID = ?");
+            queries.put("offeredBy", offeredBy);
+            PreparedStatement genSearchID = con.prepareStatement("select GEN_ID, PRODUCT_NAME, CURRENT_PRICE from GEN_PRODUCT where GEN_ID like '%'||?||'%'");
+            queries.put("genSearchID", genSearchID);
+            PreparedStatement genSearchName = con.prepareStatement("select GEN_ID, PRODUCT_NAME, CURRENT_PRICE from GEN_PRODUCT where lower(PRODUCT_NAME) like '%'||?||'%'");
+            queries.put("genSearchName", genSearchName);
         } catch (SQLException sqe) {
             System.out.println("We ran into a sql exception on insert");
         }
