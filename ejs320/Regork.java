@@ -32,6 +32,7 @@ public class Regork { //needs constructors?
                     Connection con = DriverManager.getConnection("jdbc:oracle:thin:@edgar1.cse.lehigh.edu:1521:cse241", username, password);
                     Statement stmt = con.createStatement();
             ) {
+                System.out.println(5);
                 System.out.println("Successfully Connected");
                 insertQueries(con);
                 isLoggedIn = true;
@@ -76,8 +77,11 @@ public class Regork { //needs constructors?
                     }
                 }
             } catch (SQLException sqe) {
-                if (sqe.getErrorCode() == 2800) {//account locked
+                System.out.println(1);
+                if (sqe.getErrorCode() == 28000) {//account locked
+                    System.out.println(2);
                     readLogin(scan, console, "Error: Account Locked");
+                    System.out.println(3);
                 }
                 if (sqe.getErrorCode() == 1017) {
                     readLogin(scan, console, "Error: Invalid Username or Password");
@@ -88,6 +92,7 @@ public class Regork { //needs constructors?
                 if (sqe.getErrorCode() == 17002) {
                     readLogin(scan, console, "Error: Could Not Establish Connection");
                 }
+                System.out.println(216);
                 isLoggedIn = false;
             } catch (Exception e) {
                 if (e.getMessage().contains("String index out of range")) {
