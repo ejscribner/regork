@@ -1,10 +1,3 @@
-/*
-    Created By: Elliot J Scribner on 2019-04-30
-    Student ID: ejs320
-    Lab #: **Num**
-    DataIntegrity: **Description**
- */
-
 import java.sql.*;
 import java.util.Scanner;
 
@@ -70,11 +63,21 @@ public class DataIntegrity {
                 offerTable.setHeaders("Offered By");
                 resultOfferedBy = Regork.queries.get("offeredBy").executeQuery();
                 resultOfferedBy.next();
+                int countOffer = 0;
+                int countMan = 0;
                 do {
+                    countMan++;
                     manTable.addRow(resultManufacturedBy.getString("MANUFACTURER_ID"));
                 } while (resultManufacturedBy.next());
                 while (resultOfferedBy.next()){
+                    countOffer++;
                     offerTable.addRow(resultOfferedBy.getString("SUPPLIER_ID"));
+                }
+                if(countOffer == 0) {
+                    offerTable.addRow("None");
+                }
+                if(countMan == 0) {
+                    offerTable.addRow("None");
                 }
                 manTable.print();
                 offerTable.print();
@@ -90,8 +93,7 @@ public class DataIntegrity {
                 return option;
             }
         } catch (SQLException sqe) {
-            System.out.println("sql eqception");
-            sqe.printStackTrace();
+            Regork.exitUnknown();
         }
         return -1;
     }
@@ -136,8 +138,7 @@ public class DataIntegrity {
                 }
             }
         } catch (SQLException sqe) {
-            System.out.println("sql exception");
-            sqe.printStackTrace();
+            Regork.exitUnknown();
         }
         return -1;
     }
@@ -184,26 +185,5 @@ public class DataIntegrity {
             }
         }
         return selection;
-    }
-
-    public static void checkIfShipUpdated(int productID) {
-        ResultSet result;
-        try {
-            Regork.queries.get("checkShipFromIndiv").setInt(1, productID);
-            result = Regork.queries.get("checkShipFromIndiv").executeQuery();
-            if(!result.next()) {
-                System.out.println("Empty");
-            } else {
-                CommandLineTable table = new CommandLineTable();
-                table.setHeaders("From", "To", "Manufacturer");
-                do {
-                    table.addRow(result.getString("Ship_From"), result.getString("Ship_To"), result.getString("Manufacturer"));
-                } while (result.next());
-                table.print();
-            }
-        } catch (SQLException sqe) {
-            System.out.println("sql exception");
-            sqe.printStackTrace();
-        }
     }
 }

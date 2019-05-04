@@ -1,10 +1,3 @@
-/*
-    Created By: Elliot J Scribner on 2019-04-23
-    Student ID: ejs320
-    Lab #: **Num**
-    Manager: **Description**
- */
-
 import java.sql.*;
 import java.util.Scanner;
 
@@ -17,14 +10,20 @@ public class Manager extends Regork {
         if (option == 1) {
             option = searchController(scan);
         }
+        if (option == 2) {
+            option = checkRegorkInventory(scan);
+        }
+        if (option == 3) {
+            option = findManufacturers(scan);
+        }
         manage(scan);
         return -1;
     }
 
     public static int searchController(Scanner scan) {
         Boolean isValid = false;
+        getSearchInput(scan);
         while(!isValid) {
-            getSearchInput(scan);
             System.out.println("Main Menu > " + "Manager > " + Regork.ANSI_BOLD + "Results" + Regork.ANSI_BRESET );
             System.out.println("Would you like to:");
             System.out.println("--------------------------------------");
@@ -34,19 +33,84 @@ public class Manager extends Regork {
             System.out.println("[X] Quit Program");
             if(scan.hasNextInt()) {
                 int option = scan.nextInt();
-                if(option == 1) {
-                    int item = DataIntegrity.safeInt(scan, "Please type a generic product id: ");
-                    searchExternalInventory(item);
+                if(option >= 0 && option < 3) {
+                    if(option == 1) {
+                        int item = DataIntegrity.safeInt(scan, "Please type a generic product id: ");
+                        searchExternalInventory(item);
+                    }
+                    if(option == 2) {
+                        searchController(scan);
+                    }
+                    isValid = true;
+                } else {
+                    System.out.println(Regork.ANSI_RED + "\nInvalid input" + Regork.ANSI_RESET);
+                    isValid = false;
                 }
-                if(option == 2) {
-                    searchController(scan);
-                }
-                isValid = true;
             } else {
                 Regork.checkQuit(scan);
-                System.out.println(Regork.ANSI_RED + "\nInvalid 1input" + Regork.ANSI_RESET);
+                System.out.println(Regork.ANSI_RED + "\nInvalid input" + Regork.ANSI_RESET);
                 isValid = false;
             }
+        }
+        return 1;
+    }
+
+    public static int findManufacturers(Scanner scan) {
+        ResultSet result;
+        try {
+            int input = DataIntegrity.safeInt(scan, "Enter a generic ID to view manufacturers: ");
+            Regork.queries.get("manufacturersByGenID").setInt(1, input);
+            result = Regork.queries.get("manufacturersByGenID").executeQuery();
+            if(!result.next()) {
+                System.out.println(ANSI_RED + "\nNo Generic Product Found\n" + ANSI_RESET);
+                return 0;
+            } else {
+                String product;
+                ResultSetMetaData setMetaData = result.getMetaData();
+                CommandLineTable table = new CommandLineTable();
+                table.setHeaders(setMetaData.getColumnLabel(1), setMetaData.getColumnLabel(2));
+                do {
+                    table.addRow(result.getString("ID"), result.getString("Manufacturer"));
+                    product = result.getString("PRODUCT_NAME");
+                } while (result.next());
+                System.out.println(ANSI_GREEN + "\nShowing Manufacturers for: " + ANSI_BOLD + product + ANSI_BRESET + ANSI_RESET);
+                table.print();
+            }
+        } catch (SQLException sqe) {
+            Regork.exitUnknown();
+        }
+        return 1;
+    }
+
+
+
+    public static int checkRegorkInventory(Scanner scan) {
+        ResultSet result;
+        try {
+            System.out.println("Enter number or letter: ");
+            if(scan.hasNextInt()) {
+                int input = scan.nextInt();
+                Regork.queries.get("regorkInventoryByID").setInt(1, input);
+                result = Regork.queries.get("regorkInventoryByID").executeQuery();
+            } else {
+                String input = scan.next();
+                Regork.queries.get("regorkInventoryByName").setString(1, input.toLowerCase());
+                result = Regork.queries.get("regorkInventoryByName").executeQuery();
+            }
+            if(!result.next()) {
+                System.out.println(ANSI_RED + "\nNo Inventory Found\n" + ANSI_RESET);
+                return 0;
+            } else {
+                ResultSetMetaData setMetaData = result.getMetaData();
+                CommandLineTable table = new CommandLineTable();
+                table.setHeaders(setMetaData.getColumnLabel(1), setMetaData.getColumnLabel(2), setMetaData.getColumnLabel(3));
+                do {
+                    table.addRow(result.getString("ID"), result.getString("Product"), result.getString("Stock"));
+                } while (result.next());
+                table.print();
+            }
+        } catch (SQLException sqe) {
+            Regork.exitUnknown();
         }
         return 1;
     }
@@ -62,20 +126,22 @@ public class Manager extends Regork {
                 System.out.println("Please select an option from the menu:");
                 System.out.println("--------------------------------------");
                 System.out.println("[1] Search products and look up stock by supplier");
+                System.out.println("[2] Check Regork inventory");
+                System.out.println("[3] Search for manufacturers");
                 System.out.println("[0] Go Back");
                 System.out.println("[X] Quit Program");
 
             if (scan.hasNextInt()) {
                 selection = scan.nextInt();
-                if (selection >= 0 && selection < 2) {
+                if (selection >= 0 && selection < 4) {
                     isValid = true;
                 } else {
-                    System.out.println(Regork.ANSI_RED + "\nInvalid 2input" + Regork.ANSI_RESET);
+                    System.out.println(Regork.ANSI_RED + "\nInvalid input" + Regork.ANSI_RESET);
                     isValid = false;
                 }
             } else {
                 Regork.checkQuit(scan);
-                System.out.println(Regork.ANSI_RED + "\nInvalid 3input" + Regork.ANSI_RESET);
+                System.out.println(Regork.ANSI_RED + "\nInvalid input" + Regork.ANSI_RESET);
                 isValid = false;
             }
         }
@@ -86,7 +152,7 @@ public class Manager extends Regork {
     public static void getSearchInput(Scanner scan) {
         System.out.println("\nProduct lookup checks for name or product ID containing search key");
         System.out.print("Please enter a string or number to search products: ");
-        String searchKey = scan.next(); //should be next line?
+        String searchKey = scan.next();
         searchExternalProducts(searchKey);
     }
 
@@ -102,7 +168,7 @@ public class Manager extends Regork {
         }
         try{
             if(isString) {
-                Regork.queries.get("productSearchByName").setString(1, searchKey);
+                Regork.queries.get("productSearchByName").setString(1, searchKey.toLowerCase());
                 result = Regork.queries.get("productSearchByName").executeQuery();
             } else {
                 Regork.queries.get("productSearchByID").setInt(1, searchID);
@@ -124,9 +190,7 @@ public class Manager extends Regork {
                 System.out.println(); //padding
             }
         } catch (SQLException sqE) {
-            System.out.println("Sql exception");
-            System.out.println(sqE);
-            sqE.printStackTrace();
+            Regork.exitUnknown();
         }
     }
 
@@ -141,10 +205,9 @@ public class Manager extends Regork {
         }
         try{
             if(isString) {
-                Regork.queries.get("genSearchName").setString(1, searchKey);
+                Regork.queries.get("genSearchName").setString(1, searchKey.toLowerCase());
                 result = Regork.queries.get("genSearchName").executeQuery();
             } else {
-                System.out.println("not str");
                 Regork.queries.get("genSearchID").setInt(1, searchID);
                 result = Regork.queries.get("genSearchID").executeQuery();
             }
@@ -163,9 +226,7 @@ public class Manager extends Regork {
 
             }
         } catch (SQLException sqE) {
-            System.out.println("Sql exception");
-            System.out.println(sqE);
-            sqE.printStackTrace();
+            Regork.exitUnknown();
         }
     }
 
@@ -181,17 +242,15 @@ public class Manager extends Regork {
             } else {
                 ResultSetMetaData setMetaData = result.getMetaData();
                 CommandLineTable table = new CommandLineTable();
-                table.setHeaders(setMetaData.getColumnLabel(1), setMetaData.getColumnLabel(2));
+                table.setHeaders(setMetaData.getColumnLabel(1), setMetaData.getColumnLabel(2), setMetaData.getColumnLabel(3));
                 do {
-                    table.addRow(result.getString("Supplier"), result.getString("Stock"));
+                    table.addRow(result.getString("ID"), result.getString("Supplier"), result.getString("Stock"));
                 } while (result.next());
                 table.print();
 
             }
         } catch (SQLException sqE) {
-            System.out.println("Sql exception");
-            System.out.println(sqE); //** remove before turn in
-            sqE.printStackTrace();
+            Regork.exitUnknown();
         }
     }
 }

@@ -1,4 +1,3 @@
-
 import java.io.Console;
 import java.sql.*;
 import java.util.Map;
@@ -10,29 +9,26 @@ public class Regork { //needs constructors?
     static String password;
     static String username;
     public static final String ANSI_RESET = "\u001B[0m";
-    public static final String ANSI_BLACK = "\u001B[30m";
     public static final String ANSI_RED = "\u001B[31m";
     public static final String ANSI_GREEN = "\u001B[32m";
-    public static final String ANSI_YELLOW = "\u001B[33m";
-    public static final String ANSI_BLUE = "\u001B[34m";
-    public static final String ANSI_PURPLE = "\u001B[35m";
-    public static final String ANSI_CYAN = "\u001B[36m";
-    public static final String ANSI_WHITE = "\u001B[37m";
     public static final String ANSI_BOLD = "\033[1m";
     public static final String ANSI_BRESET = "\033[0m";
+
     public static void main(String[] args) { //make get integer method that works for all, sends msg prompt
+        try {
+
         Console console = System.console();
         Scanner scan = new Scanner(System.in);
         boolean isLoggedIn = false;
         System.out.println("Welcome to Regork!");
         DriverManager.setLoginTimeout(20);
-        readLogin(scan, console, "Please log in to access the Regork information system");
+        readLogin(scan, console, "Please log in to access the Regork information system", false);
+        int failedAttempts = 0;
         while (!isLoggedIn) {
             try (
                     Connection con = DriverManager.getConnection("jdbc:oracle:thin:@edgar1.cse.lehigh.edu:1521:cse241", username, password);
                     Statement stmt = con.createStatement();
             ) {
-                System.out.println(5);
                 System.out.println("Successfully Connected");
                 insertQueries(con);
                 isLoggedIn = true;
@@ -44,7 +40,7 @@ public class Regork { //needs constructors?
                     System.out.println("-----------------------------");
                     System.out.println("[1] Manager");
                     System.out.println("[2] Data Checker");
-                    System.out.println("[3] Recalls");
+                    System.out.println("[3] Ordering");
                     System.out.println("[X] Quit Program");
                     if (scan.hasNextInt()) { //look into abstraction
                         int userType = scan.nextInt();
@@ -60,11 +56,13 @@ public class Regork { //needs constructors?
                                 int status = DataIntegrity.check(scan);
                                 if (status == -1) {
                                     isValid = false;
-                                    //doesnt get here after going into menu options and walking back
                                 }
                             } else {
                                 isValid = true;
-                                System.out.println("Third opt");
+                                int status = Ordering.order(scan);
+                                if(status == -1) {
+                                    isValid = false;
+                                }
                             }
                         } else {
                             System.out.println(ANSI_RED + "\nInvalid input" + ANSI_RESET);
@@ -77,35 +75,46 @@ public class Regork { //needs constructors?
                     }
                 }
             } catch (SQLException sqe) {
-                System.out.println(1);
+                failedAttempts++;
+                if(failedAttempts > 3) {
+                    System.out.println(Regork.ANSI_RED + "\nToo Many Failed Login Attempts" + Regork.ANSI_RESET);
+                    System.out.println(Regork.ANSI_GREEN + "Program Exiting \n" + Regork.ANSI_RESET);
+                    System.exit(0);
+                }
                 if (sqe.getErrorCode() == 28000) {//account locked
-                    System.out.println(2);
-                    readLogin(scan, console, "Error: Account Locked");
-                    System.out.println(3);
+                    readLogin(scan, console, "Error: Account Locked", true);
+                } else if (sqe.getErrorCode() == 1017) {
+                    readLogin(scan, console, "Error: Invalid Username or Password", true);
+                } else if (sqe.getMessage().contains("No suitable driver found")) {
+                    readLogin(scan, console, "Error: Could Not Connect, Driver Not Found", true);
+                } else if (sqe.getErrorCode() == 17002) {
+                    readLogin(scan, console, "Error: Could Not Establish Connection", true);
+                } else {
+                    readLogin(scan, console, "Unknown Login Error", true);
                 }
-                if (sqe.getErrorCode() == 1017) {
-                    readLogin(scan, console, "Error: Invalid Username or Password");
-                }
-                if (sqe.getMessage().contains("No suitable driver found")) {
-                    readLogin(scan, console, "Error: Could Not Connect, Driver Not Found");
-                }
-                if (sqe.getErrorCode() == 17002) {
-                    readLogin(scan, console, "Error: Could Not Establish Connection");
-                }
-                System.out.println(216);
                 isLoggedIn = false;
             } catch (Exception e) {
                 if (e.getMessage().contains("String index out of range")) {
-                    System.out.println("Error: Username/Password not read properly.");
-                    System.out.println("Exiting Program...");
+                    System.out.println(ANSI_RED + "Error: Username/Password not read properly." + ANSI_RESET);
+                    System.out.println(Regork.ANSI_GREEN + "Program Exiting \n" + Regork.ANSI_RESET);
+                    System.exit(0);
                 } else {
-                    System.out.println("An Unknown Error Occurred");
-                    System.out.println("Exiting Program...");
-                    e.printStackTrace();
+                    exitUnknown();
                 }
                 isLoggedIn = false;
             }
         }
+
+        } catch (Throwable t) {
+            System.out.println(Regork.ANSI_GREEN + "Program Exiting \n" + Regork.ANSI_RESET);
+            System.exit(0);
+        }
+    }
+
+    static void exitUnknown() {
+        System.out.println(Regork.ANSI_RED + "An Unknown Error Occurred" + Regork.ANSI_RESET);
+        System.out.println(Regork.ANSI_GREEN + "Program Exiting \n" + Regork.ANSI_RESET);
+        System.exit(0);
     }
 
     static void checkQuit(Scanner scan) {
@@ -116,8 +125,12 @@ public class Regork { //needs constructors?
         }
     }
 
-    static void readLogin(Scanner scan, Console console, String prompt) {
-        System.out.println(prompt);
+    static void readLogin(Scanner scan, Console console, String prompt, boolean isError) {
+        if(isError) {
+            System.out.println(ANSI_RED + "\n" + prompt + "\n" + ANSI_RESET);
+        } else {
+            System.out.println(ANSI_GREEN + "\n" + prompt + "\n" + ANSI_RESET);
+        }
         username = null;
         System.out.print("Username: ");
         username = scan.next();
@@ -129,7 +142,7 @@ public class Regork { //needs constructors?
 
     public static void insertQueries(Connection con) {
         try {
-            PreparedStatement inventoryByID = con.prepareStatement("select SUPPLIER_NAME as Supplier, count(*) as Stock from product inner join GEN_PRODUCT on PARENT_ID = GEN_ID inner join MANUFACTURE on PRODUCT.PRODUCT_ID = MANUFACTURE.PRODUCT_ID inner join SUPPLIER on SUPPLIER.SUPPLIER_ID = MANUFACTURE.MANUFACTURER_ID where gen_id = ? group by SUPPLIER_NAME");
+            PreparedStatement inventoryByID = con.prepareStatement("select SUPPLIER_ID as ID, SUPPLIER_NAME as Supplier, count(TO_ID) as Stock from PRODUCT inner join SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID where PARENT_ID = ? group by SUPPLIER_NAME, SUPPLIER_ID");
             queries.put("inventoryByID", inventoryByID);
             PreparedStatement productSearchByName = con.prepareStatement("select unique gen_id as ID, product_name as Name from product inner join GEN_PRODUCT on parent_id = gen_id where lower(PRODUCT_NAME) like '%'||?||'%'");
             queries.put("productSearchByName", productSearchByName);
@@ -137,6 +150,8 @@ public class Regork { //needs constructors?
             queries.put("productSearchByID", productSearchByID);
             PreparedStatement checkShipFromIndiv = con.prepareStatement("select FROM_ID as Ship_From,TO_ID as Ship_To, M.MANUFACTURER_ID as Manufacturer from SHIPMENT inner join PRODUCT on SHIPMENT.SHIP_ID = PRODUCT.SHIP_ID inner join MANUFACTURE M on PRODUCT.PRODUCT_ID = M.PRODUCT_ID where M.PRODUCT_ID = ?");
             queries.put("checkShipFromIndiv", checkShipFromIndiv);
+            CallableStatement callAddOrder = con.prepareCall("{call ejs320.addOrder(?, ?)}");
+            queries.put("callAddOrder", callAddOrder);
             CallableStatement callFixShip = con.prepareCall("{call ejs320.fix_ship(?)}");
             queries.put("callFixShip", callFixShip);
             CallableStatement callFixOffer = con.prepareCall("{call ejs320.fix_offer(?)}");
@@ -149,8 +164,16 @@ public class Regork { //needs constructors?
             queries.put("genSearchID", genSearchID);
             PreparedStatement genSearchName = con.prepareStatement("select GEN_ID, PRODUCT_NAME, CURRENT_PRICE from GEN_PRODUCT where lower(PRODUCT_NAME) like '%'||?||'%'");
             queries.put("genSearchName", genSearchName);
+            PreparedStatement regorkInventoryByName = con.prepareStatement("select GEN_ID as ID, PRODUCT_NAME as Product, count(TO_ID) as Stock from PRODUCT inner join SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where SUPPLIER_ID = 11 and lower(PRODUCT_NAME) like '%'||?||'%' group by GEN_ID, PRODUCT_NAME order by PRODUCT_NAME");
+            queries.put("regorkInventoryByName", regorkInventoryByName);
+            PreparedStatement regorkInventoryByID = con.prepareStatement("select GEN_ID as ID, PRODUCT_NAME as Product, count(TO_ID) as Stock from PRODUCT inner join SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where SUPPLIER_ID = 11 and GEN_ID like '%'||?||'%' group by GEN_ID, PRODUCT_NAME order by PRODUCT_NAME");
+            queries.put("regorkInventoryByID", regorkInventoryByID);
+            PreparedStatement manufacturersByGenID = con.prepareStatement("select unique MANUFACTURER_ID as ID, SUPPLIER_NAME as Manufacturer, PRODUCT_NAME from MANUFACTURE inner join SUPPLIER on SUPPLIER_ID = MANUFACTURER_ID inner join PRODUCT on PRODUCT.PRODUCT_ID = MANUFACTURE.PRODUCT_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where GEN_ID = ?");
+            queries.put("manufacturersByGenID", manufacturersByGenID);
+            PreparedStatement regorkInventoryResults = con.prepareStatement("select GEN_ID as ID, PRODUCT_NAME as Product, count(TO_ID) as Stock from PRODUCT inner join SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where SUPPLIER_ID = 11 and GEN_ID = ? group by GEN_ID, PRODUCT_NAME order by PRODUCT_NAME");
+            queries.put("regorkInventoryResults", regorkInventoryResults);
         } catch (SQLException sqe) {
-            System.out.println("We ran into a sql exception on insert");
+            Regork.exitUnknown();
         }
     }
 }
