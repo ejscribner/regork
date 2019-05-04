@@ -1,2 +1,2 @@
 Main-class: Regork
-Class-Path: ojdbc8.jar
+Class-Path: ejs320/ojdbc8.jar

@@ -46,3 +46,9 @@ Throughout the program each menu is displayed with a breadcrumb to indicate wher
 
 For all interfaces plenty of data works for testing and is easy to find with searches.
 
+For compilation, a Makefile has been included in the ejs320 directory, which can use the following commands:
+
+       make        -  compile java code
+       make jar    -  create a jar file, and move it out to top level directory (as project specifies)
+       make clean  -  clean up extra .class and .jar files
+
