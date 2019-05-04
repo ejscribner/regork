@@ -1,0 +1,48 @@
+Regork!
+Project By Elliot Scribner
+CommandLineTable.java Adapted from https://www.logicbig.com/how-to/code-snippets/jcode-java-cmd-command-line-table.html for printing tables
+
+Regork Starts at the Main Menu-
+
+       Please select your user type:
+       -----------------------------
+       [1] Manager
+       [2] Data Checker
+
+
+You can chose a manager, who can then search for products to find which suppliers stock it, check Regorks inventory, and search for manufacturers of specific products
+
+       Main Menu > Manager
+       Please select an option from the menu:
+       --------------------------------------
+       [1] Search products and look up stock by supplier
+       [2] Check Regork inventory
+       [3] Search for manufacturers
+
+
+You can chose a data checker, who can view anomalies with shipping and offering inconsistencies, where manufacturer is different from shipper or manufacturer does not offer the product.
+The data checker then provides support to fix the data anomaly.
+
+       Main Menu > Data Analyst
+       Please select an option from the menu:
+       --------------------------------------
+       [1] View and fix shipping inconsistencies
+       [2] View and fix offering inconsistencies
+
+The final option is to place an order for a new product for the Regork store.
+The Ordering interface allows users to check Regork Inventory, search for manufacturers of a specific generic product, and place orders for new products.
+
+       Main Menu > Ordering
+       Please select an option from the menu:
+       --------------------------------------
+       [1] Check Regork Inventory
+       [2] Find Manufacturers
+       [3] Order new stock
+
+Throughout the program each menu is displayed with a breadcrumb to indicate where in the program the user is:
+
+       Main Menu > Data Analyst > Offers Anomaly Found
+
+
+For all interfaces plenty of data works for testing and is easy to find with searches.
+
