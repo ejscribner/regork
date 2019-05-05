@@ -1,5 +1,6 @@
 import java.io.Console;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -22,14 +23,18 @@ public class Regork { //needs constructors?
         boolean isLoggedIn = false;
         System.out.println("Welcome to Regork!");
         DriverManager.setLoginTimeout(20);
+        String defUser = "sys as sysdba";
+        String defPassword = "Oradoc_db1";
         readLogin(scan, console, "Please log in to access the Regork information system", false);
         int failedAttempts = 0;
         while (!isLoggedIn) {
             try (
-                    Connection con = DriverManager.getConnection("jdbc:oracle:thin:@edgar1.cse.lehigh.edu:1521:cse241", username, password);
-                    Statement stmt = con.createStatement();
+//                    Connection con = DriverManager.getConnection("jdbc:oracle:thin:@edgar1.cse.lehigh.edu:1521:cse241", username, password);
+                    Connection con = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:ORCLCDB", username, password);
+                    Statement stmt = con.createStatement()
             ) {
                 System.out.println("Successfully Connected");
+
                 insertQueries(con);
                 isLoggedIn = true;
                 boolean isValid = false;
@@ -53,7 +58,7 @@ public class Regork { //needs constructors?
                                 }
                             } else if(userType == 2) {
                                 isValid = true;
-                                int status = DataIntegrity.check(scan);
+                                int status = DataIntegrity.check(scan, con);
                                 if (status == -1) {
                                     isValid = false;
                                 }
@@ -92,6 +97,7 @@ public class Regork { //needs constructors?
                 } else {
                     readLogin(scan, console, "Unknown Login Error", true);
                 }
+                sqe.printStackTrace();
                 isLoggedIn = false;
             } catch (Exception e) {
                 if (e.getMessage().contains("String index out of range")) {

@@ -2,7 +2,7 @@ import java.sql.*;
 import java.util.Scanner;
 
 public class DataIntegrity {
-    public static int check(Scanner scan) {
+    public static int check(Scanner scan, Connection con) {
         //from id != to id
         int option = menu(scan, 1);
         if (option == 0) {
@@ -12,9 +12,15 @@ public class DataIntegrity {
             option = findShipInconsistency(scan);
         }
         if (option == 2) {
-            findOffersInconsistency(scan);
+            option = findOffersInconsistency(scan);
         }
-        check(scan);
+        if (option == 3) {
+            option = findShipInconsistencyBulk(scan, con);
+        }
+        if (option == 4) {
+            System.out.println("bulk offer");
+        }
+        check(scan, con);
         return -1;
     }
 
@@ -100,10 +106,6 @@ public class DataIntegrity {
 
     public static int findShipInconsistency(Scanner scan) {
         ResultSet result;
-        //search beforehand?
-//        System.out.print("To search for a product enter a string or number: ");
-//        String searchKey = scan.next();
-//        Manager.searchExternalProducts(searchKey);
         int productID = safeInt(scan, "Please enter a product id: ");
         int manufacturer;
         int shipFrom;
@@ -143,6 +145,83 @@ public class DataIntegrity {
         return -1;
     }
 
+
+    public static int findShipInconsistencyBulk(Scanner scan, Connection con) {
+        ResultSet result;
+        int minID = safeInt(scan, "Please enter the min product id you would like to fix: ");
+        int maxID = safeInt(scan, "Please enter the max product id you would like to fix: ");
+        int anomalyCount = 0;
+        int noAnomalyCount = 0;
+        int rangeSize = maxID - minID + 1;
+        for(int productID = minID; productID <= maxID; productID++) {
+            int manufacturer;
+            int shipFrom;
+            try {
+                Regork.queries.get("checkShipFromIndiv").setInt(1, productID);
+                result = Regork.queries.get("checkShipFromIndiv").executeQuery();
+                if (!result.next()) {
+                    System.out.println(Regork.ANSI_RED + "\nNo product found for id: " + Regork.ANSI_BOLD + productID + Regork.ANSI_BRESET + Regork.ANSI_RESET);
+                } else {
+                    manufacturer = result.getInt("Manufacturer");
+                    shipFrom = result.getInt("Ship_From"); //add option to print output or not
+//                    System.out.println(); //padding
+//                    System.out.println("Product: " + Regork.ANSI_BOLD + productID + Regork.ANSI_BRESET);
+//                    System.out.println("is manufactured by supplier: " + Regork.ANSI_BOLD + manufacturer + Regork.ANSI_BRESET);
+//                    System.out.println("and is shipped by supplier: " + Regork.ANSI_BOLD + shipFrom + Regork.ANSI_BRESET);
+
+                    if (manufacturer != shipFrom) {
+                        anomalyCount++;
+                        System.out.println("anomaly count: " + anomalyCount);
+//                        System.out.println(Regork.ANSI_RED + "Anomaly Found" + Regork.ANSI_RESET);
+//                        option = menu(scan, 2);
+                    } else {
+                        noAnomalyCount++;
+                        System.out.println("no anomaly count: " + noAnomalyCount);
+//                        System.out.println(Regork.ANSI_GREEN + "No Anomaly Found" + Regork.ANSI_RESET);
+                    }
+                }
+            } catch (SQLException sqe) {
+                Regork.exitUnknown();
+            }
+        }
+        int option;
+
+        if(anomalyCount > 0) {
+            System.out.println("We found: " + anomalyCount + " shipping anomalies");
+            System.out.println(noAnomalyCount+ " of the " + (rangeSize) + " products checked contained no anomaly.");
+            option = menu(scan, 4);
+        } else {
+            System.out.println(Regork.ANSI_GREEN + "No Anomalies Found" + Regork.ANSI_RESET);
+            return 0;
+        }
+
+        int anomaliesFixed = 0;
+        if(option == 1) {
+                try {
+                    CallableStatement bulkFixShip = con.prepareCall("{? = call ejs320.bulkFixShip(?,?)}");
+                    bulkFixShip.registerOutParameter(1, java.sql.Types.INTEGER);
+                    bulkFixShip.setInt(2, minID);
+                    bulkFixShip.setInt(3, maxID);
+                    bulkFixShip.execute();
+                    anomaliesFixed = bulkFixShip.getInt(1);
+//                    queries.put("bulkFixShip", bulkFixShip);
+//                    Regork.queries.get("bulkFixShip").setInt(1, minID);
+//                    Regork.queries.get("bulkFixShip").setInt(1, maxID);
+
+//                    Regork.queries.get("bulkFixShip").execute();
+                } catch (SQLException sqe) {
+                    sqe.printStackTrace();
+                }
+                System.out.println(Regork.ANSI_GREEN + anomaliesFixed + " Anomalies Fixed" + Regork.ANSI_RESET);
+
+        } else if(option == 2 || option == 0) {
+            return 0;
+        }
+        System.out.println("here10");
+
+        return -1;
+    }
+
     public static int menu(Scanner scan, int context) {
         int selection = -1;
         boolean isValid = false;
@@ -154,12 +233,16 @@ public class DataIntegrity {
                 System.out.println("--------------------------------------");
                 System.out.println("[1] View and fix shipping inconsistencies");
                 System.out.println("[2] View and fix offering inconsistencies");
+                System.out.println("[3] Bulk fix shipping inconsistencies");
+                System.out.println("[4] Bulk fix offering inconsistencies");
                 System.out.println("[0] Go Back");
                 System.out.println("[X] Quit Program");
             } else if (context == 2) {
                 System.out.println("Main Menu > " + "Data Analyst > " + Regork.ANSI_BOLD + "Shipping Anomaly Found" + Regork.ANSI_BRESET);
             } else if (context == 3) {
                 System.out.println("Main Menu > " + "Data Analyst > " + Regork.ANSI_BOLD + "Offers Anomaly Found" + Regork.ANSI_BRESET);
+            } else if (context == 4) {
+                System.out.println("Main Menu > " + "Data Analyst > " + Regork.ANSI_BOLD + "Bulk Shipping Anomalies Found" + Regork.ANSI_BRESET);
             }
             if(context == 2 || context == 3) {
                 System.out.println("Would you like to:");
@@ -169,10 +252,18 @@ public class DataIntegrity {
                 System.out.println("[0] Go Back");
                 System.out.println("[X] Quit Program");
             }
+            if(context == 4 || context == 5) {
+                System.out.println("Would you like to:");
+                System.out.println("------------------");
+                System.out.println("[1] Fix all anomalies");
+                System.out.println("[2] Leave all anomalies"); //maybe cut this option
+                System.out.println("[0] Go Back");
+                System.out.println("[X] Quit Program");
+            }
 
             if (scan.hasNextInt()) {
                 selection = scan.nextInt();
-                if (selection >= 0 && selection < 3) {
+                if (selection >= 0 && selection < 5) {
                     isValid = true;
                 } else {
                     System.out.println(Regork.ANSI_RED + "\nInvalid input" + Regork.ANSI_RESET);
