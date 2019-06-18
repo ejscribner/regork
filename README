@@ -52,3 +52,4 @@ For compilation, a Makefile has been included in the ejs320 directory, which can
        make jar    -  create a jar file, and move it out to top level directory (as project specifies)
        make clean  -  clean up extra .class and .jar files
 
+The jar process uses a manifest file in the config directory to point to the proper main class and class path

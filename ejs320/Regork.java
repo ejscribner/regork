@@ -30,10 +30,11 @@ public class Regork { //needs constructors?
         while (!isLoggedIn) {
             try (
 //                    Connection con = DriverManager.getConnection("jdbc:oracle:thin:@edgar1.cse.lehigh.edu:1521:cse241", username, password);
-                    Connection con = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:ORCLCDB", username, password);
+                    Connection con = DriverManager.getConnection("jdbc:oracle:thin:@klondike.ch6uqvsohjtl.us-east-2.rds.amazonaws.com :1521:ORCL", username, password);
                     Statement stmt = con.createStatement()
             ) {
                 System.out.println("Successfully Connected");
+
 
                 insertQueries(con);
                 isLoggedIn = true;
@@ -97,7 +98,6 @@ public class Regork { //needs constructors?
                 } else {
                     readLogin(scan, console, "Unknown Login Error", true);
                 }
-                sqe.printStackTrace();
                 isLoggedIn = false;
             } catch (Exception e) {
                 if (e.getMessage().contains("String index out of range")) {
@@ -148,35 +148,35 @@ public class Regork { //needs constructors?
 
     public static void insertQueries(Connection con) {
         try {
-            PreparedStatement inventoryByID = con.prepareStatement("select SUPPLIER_ID as ID, SUPPLIER_NAME as Supplier, count(TO_ID) as Stock from PRODUCT inner join SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID where PARENT_ID = ? group by SUPPLIER_NAME, SUPPLIER_ID");
+            PreparedStatement inventoryByID = con.prepareStatement("select SUPPLIER_ID as ID, SUPPLIER_NAME as Supplier, count(TO_ID) as Stock from ejscribner.PRODUCT inner join ejscribner.SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID where PARENT_ID = ? group by SUPPLIER_NAME, SUPPLIER_ID");
             queries.put("inventoryByID", inventoryByID);
-            PreparedStatement productSearchByName = con.prepareStatement("select unique gen_id as ID, product_name as Name from product inner join GEN_PRODUCT on parent_id = gen_id where lower(PRODUCT_NAME) like '%'||?||'%'");
+            PreparedStatement productSearchByName = con.prepareStatement("select unique gen_id as ID, product_name as Name from ejscribner.product inner join ejscribner.GEN_PRODUCT on parent_id = gen_id where lower(PRODUCT_NAME) like '%'||?||'%'");
             queries.put("productSearchByName", productSearchByName);
-            PreparedStatement productSearchByID = con.prepareStatement("select unique gen_id as ID, product_name as Name from product inner join GEN_PRODUCT on parent_id = gen_id where gen_id like '%'||?||'%'");
+            PreparedStatement productSearchByID = con.prepareStatement("select unique gen_id as ID, product_name as Name from ejscribner.product inner join ejscribner.GEN_PRODUCT on parent_id = gen_id where gen_id like '%'||?||'%'");
             queries.put("productSearchByID", productSearchByID);
-            PreparedStatement checkShipFromIndiv = con.prepareStatement("select FROM_ID as Ship_From,TO_ID as Ship_To, M.MANUFACTURER_ID as Manufacturer from SHIPMENT inner join PRODUCT on SHIPMENT.SHIP_ID = PRODUCT.SHIP_ID inner join MANUFACTURE M on PRODUCT.PRODUCT_ID = M.PRODUCT_ID where M.PRODUCT_ID = ?");
+            PreparedStatement checkShipFromIndiv = con.prepareStatement("select FROM_ID as Ship_From,TO_ID as Ship_To, M.MANUFACTURER_ID as Manufacturer from ejscribner.SHIPMENT inner join ejscribner.PRODUCT on SHIPMENT.SHIP_ID = PRODUCT.SHIP_ID inner join ejscribner.MANUFACTURE M on PRODUCT.PRODUCT_ID = M.PRODUCT_ID where M.PRODUCT_ID = ?");
             queries.put("checkShipFromIndiv", checkShipFromIndiv);
-            CallableStatement callAddOrder = con.prepareCall("{call ejs320.addOrder(?, ?)}");
+            CallableStatement callAddOrder = con.prepareCall("{call ejscribner.addOrder(?, ?)}");
             queries.put("callAddOrder", callAddOrder);
-            CallableStatement callFixShip = con.prepareCall("{call ejs320.fix_ship(?)}");
+            CallableStatement callFixShip = con.prepareCall("{call ejscribner.fix_ship(?)}");
             queries.put("callFixShip", callFixShip);
-            CallableStatement callFixOffer = con.prepareCall("{call ejs320.fix_offer(?)}");
+            CallableStatement callFixOffer = con.prepareCall("{call ejscribner.fix_offer(?)}");
             queries.put("callFixOffer", callFixOffer);
-            PreparedStatement manufacturedBy = con.prepareStatement("select unique MANUFACTURER_ID from MANUFACTURE inner join product on PRODUCT.PRODUCT_ID = MANUFACTURE.PRODUCT_ID inner join GEN_PRODUCT on GEN_ID = PARENT_ID where GEN_ID = ? minus (select SUPPLIER_ID from offers where GEN_ID = ?)");
+            PreparedStatement manufacturedBy = con.prepareStatement("select unique MANUFACTURER_ID from ejscirbner.MANUFACTURE inner join ejscribner.product on PRODUCT.PRODUCT_ID = MANUFACTURE.PRODUCT_ID inner join ejscribner.GEN_PRODUCT on GEN_ID = PARENT_ID where GEN_ID = ? minus (select SUPPLIER_ID from ejscribner.offers where GEN_ID = ?)");
             queries.put("manufacturedBy", manufacturedBy);
-            PreparedStatement offeredBy = con.prepareStatement("select SUPPLIER_ID from offers where GEN_ID = ?");
+            PreparedStatement offeredBy = con.prepareStatement("select SUPPLIER_ID from ejscribner.offers where GEN_ID = ?");
             queries.put("offeredBy", offeredBy);
-            PreparedStatement genSearchID = con.prepareStatement("select GEN_ID, PRODUCT_NAME, CURRENT_PRICE from GEN_PRODUCT where GEN_ID like '%'||?||'%'");
+            PreparedStatement genSearchID = con.prepareStatement("select GEN_ID, PRODUCT_NAME, CURRENT_PRICE from ejscribner.GEN_PRODUCT where GEN_ID like '%'||?||'%'");
             queries.put("genSearchID", genSearchID);
-            PreparedStatement genSearchName = con.prepareStatement("select GEN_ID, PRODUCT_NAME, CURRENT_PRICE from GEN_PRODUCT where lower(PRODUCT_NAME) like '%'||?||'%'");
+            PreparedStatement genSearchName = con.prepareStatement("select GEN_ID, PRODUCT_NAME, CURRENT_PRICE from ejscribner.GEN_PRODUCT where lower(PRODUCT_NAME) like '%'||?||'%'");
             queries.put("genSearchName", genSearchName);
-            PreparedStatement regorkInventoryByName = con.prepareStatement("select GEN_ID as ID, PRODUCT_NAME as Product, count(TO_ID) as Stock from PRODUCT inner join SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where SUPPLIER_ID = 11 and lower(PRODUCT_NAME) like '%'||?||'%' group by GEN_ID, PRODUCT_NAME order by PRODUCT_NAME");
+            PreparedStatement regorkInventoryByName = con.prepareStatement("select GEN_ID as ID, PRODUCT_NAME as Product, count(TO_ID) as Stock from ejscribner.PRODUCT inner join ejscribner.SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join ejscribner.SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID inner join ejscribner.GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where SUPPLIER_ID = 11 and lower(PRODUCT_NAME) like '%'||?||'%' group by GEN_ID, PRODUCT_NAME order by PRODUCT_NAME");
             queries.put("regorkInventoryByName", regorkInventoryByName);
-            PreparedStatement regorkInventoryByID = con.prepareStatement("select GEN_ID as ID, PRODUCT_NAME as Product, count(TO_ID) as Stock from PRODUCT inner join SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where SUPPLIER_ID = 11 and GEN_ID like '%'||?||'%' group by GEN_ID, PRODUCT_NAME order by PRODUCT_NAME");
+            PreparedStatement regorkInventoryByID = con.prepareStatement("select GEN_ID as ID, PRODUCT_NAME as Product, count(TO_ID) as Stock from ejscribner.PRODUCT inner join SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where SUPPLIER_ID = 11 and GEN_ID like '%'||?||'%' group by GEN_ID, PRODUCT_NAME order by PRODUCT_NAME");
             queries.put("regorkInventoryByID", regorkInventoryByID);
-            PreparedStatement manufacturersByGenID = con.prepareStatement("select unique MANUFACTURER_ID as ID, SUPPLIER_NAME as Manufacturer, PRODUCT_NAME from MANUFACTURE inner join SUPPLIER on SUPPLIER_ID = MANUFACTURER_ID inner join PRODUCT on PRODUCT.PRODUCT_ID = MANUFACTURE.PRODUCT_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where GEN_ID = ?");
+            PreparedStatement manufacturersByGenID = con.prepareStatement("select unique MANUFACTURER_ID as ID, SUPPLIER_NAME as Manufacturer, PRODUCT_NAME from ejscribner.MANUFACTURE inner join ejscirbner.SUPPLIER on SUPPLIER_ID = MANUFACTURER_ID inner join ejscribner.PRODUCT on PRODUCT.PRODUCT_ID = MANUFACTURE.PRODUCT_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where GEN_ID = ?");
             queries.put("manufacturersByGenID", manufacturersByGenID);
-            PreparedStatement regorkInventoryResults = con.prepareStatement("select GEN_ID as ID, PRODUCT_NAME as Product, count(TO_ID) as Stock from PRODUCT inner join SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID inner join GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where SUPPLIER_ID = 11 and GEN_ID = ? group by GEN_ID, PRODUCT_NAME order by PRODUCT_NAME");
+            PreparedStatement regorkInventoryResults = con.prepareStatement("select GEN_ID as ID, PRODUCT_NAME as Product, count(TO_ID) as Stock from ejscribner.PRODUCT inner join ejscribner.SHIPMENT on PRODUCT.SHIP_ID = SHIPMENT.SHIP_ID inner join ejscribner.SUPPLIER on SHIPMENT.TO_ID = SUPPLIER.SUPPLIER_ID inner join ejscribner.GEN_PRODUCT on PRODUCT.PARENT_ID = GEN_PRODUCT.GEN_ID where SUPPLIER_ID = 11 and GEN_ID = ? group by GEN_ID, PRODUCT_NAME order by PRODUCT_NAME");
             queries.put("regorkInventoryResults", regorkInventoryResults);
         } catch (SQLException sqe) {
             Regork.exitUnknown();

@@ -78,6 +78,8 @@ public class Manager extends Regork {
             }
         } catch (SQLException sqe) {
             Regork.exitUnknown();
+            sqe.printStackTrace();
+
         }
         return 1;
     }
@@ -111,6 +113,7 @@ public class Manager extends Regork {
             }
         } catch (SQLException sqe) {
             Regork.exitUnknown();
+            sqe.printStackTrace();
         }
         return 1;
     }
@@ -191,6 +194,7 @@ public class Manager extends Regork {
             }
         } catch (SQLException sqE) {
             Regork.exitUnknown();
+            sqE.printStackTrace();
         }
     }
 
@@ -227,6 +231,8 @@ public class Manager extends Regork {
             }
         } catch (SQLException sqE) {
             Regork.exitUnknown();
+            sqE.printStackTrace();
+
         }
     }
 
@@ -251,6 +257,8 @@ public class Manager extends Regork {
             }
         } catch (SQLException sqE) {
             Regork.exitUnknown();
+            sqE.printStackTrace();
+
         }
     }
 }
